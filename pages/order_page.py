@@ -1,11 +1,12 @@
+"""Форма оформления заказа самоката."""
 
+import allure
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+
+from pages.base_page import BasePage
 
 
-class OrderPage:
-
+class OrderPage(BasePage):
     FIRST_NAME = (By.XPATH, "//input[@placeholder='* Имя']")
     LAST_NAME = (By.XPATH, "//input[@placeholder='* Фамилия']")
     ADDRESS = (By.XPATH, "//input[@placeholder='* Адрес: куда привезти заказ']")
@@ -13,91 +14,61 @@ class OrderPage:
     PHONE = (By.XPATH, "//input[@placeholder='* Телефон: на него позвонит курьер']")
     NEXT_BUTTON = (By.XPATH, "//button[normalize-space()='Далее']")
 
-    def __init__(self, driver):
-        self.driver = driver
+    DELIVERY_DATE = (By.XPATH, "//input[@placeholder='* Когда привезти самокат']")
+    RENTAL_TITLE = (By.XPATH, "//*[normalize-space()='Про аренду']")
+    RENTAL_DROPDOWN = (By.CLASS_NAME, "Dropdown-control")
+    COMMENT = (By.XPATH, "//input[@placeholder='Комментарий для курьера']")
+    ORDER_BUTTON = (
+        By.XPATH,
+        "//div[contains(@class, 'Order_Buttons')]//button[text()='Заказать']",
+    )
+    CONFIRM_BUTTON = (
+        By.XPATH,
+        "//div[contains(@class, 'Order_Modal')]//button[text()='Да']",
+    )
+    SUCCESS_MESSAGE = (By.XPATH, "//div[contains(@class, 'Order_ModalHeader')]")
 
+    @allure.step("Заполнить первую страницу заказа")
     def fill_first_step(self, name, surname, address, metro, phone):
-        self.driver.find_element(*self.FIRST_NAME).send_keys(name)
-        self.driver.find_element(*self.LAST_NAME).send_keys(surname)
-        self.driver.find_element(*self.ADDRESS).send_keys(address)
-
-        self.driver.find_element(*self.METRO).send_keys(metro)
+        self.type_text(self.FIRST_NAME, name)
+        self.type_text(self.LAST_NAME, surname)
+        self.type_text(self.ADDRESS, address)
+        self.type_text(self.METRO, metro)
 
         metro_option = (
             By.XPATH,
-            f"//button[.//*[normalize-space()='{metro}']]"
+            f"//button[.//*[normalize-space()='{metro}']]",
         )
-        WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable(metro_option)
-        ).click()
+        self.click(metro_option)
+        self.type_text(self.PHONE, phone)
 
-        self.driver.find_element(*self.PHONE).send_keys(phone)
-
+    @allure.step("Перейти ко второй странице заказа")
     def click_next(self):
-        WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable(self.NEXT_BUTTON)
-        ).click()
+        self.click(self.NEXT_BUTTON)
 
-
-    
+    @allure.step("Заполнить вторую страницу заказа")
     def fill_second_step(self, date, rental_period, color, comment):
-        # Вводим дату доставки
-        date_input = self.driver.find_element(
-            By.XPATH, "//input[@placeholder='* Когда привезти самокат']"
-        )
-        date_input.send_keys(date)
+        self.type_text(self.DELIVERY_DATE, date)
+        # Календарь перекрывает список аренды, если его не закрыть.
+        self.click(self.RENTAL_TITLE)
+        self.click(self.RENTAL_DROPDOWN)
 
-        # Закрываем календарь нажатием на заголовок
-        self.driver.find_element(
-            By.XPATH, "//*[normalize-space()='Про аренду']"
-        ).click()
-
-        # Открываем список сроков аренды
-        self.driver.find_element(
-            By.CLASS_NAME, "Dropdown-control"
-        ).click()
-
-        # Выбираем срок аренды
         rental_option = (
             By.XPATH,
-            f"//div[contains(@class, 'Dropdown-option') and text()='{rental_period}']"
+            f"//div[contains(@class, 'Dropdown-option') and text()='{rental_period}']",
         )
-        WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable(rental_option)
-        ).click()
+        self.click(rental_option)
+        self.click((By.ID, color))
+        self.type_text(self.COMMENT, comment)
 
-        # Выбираем цвет самоката
-        self.driver.find_element(By.ID, color).click()
-
-        # Заполняем комментарий для курьера
-        self.driver.find_element(
-            By.XPATH, "//input[@placeholder='Комментарий для курьера']"
-        ).send_keys(comment)
-
-
+    @allure.step("Нажать Заказать на второй странице")
     def click_order(self):
-        order_button = (
-            By.XPATH,
-            "//div[contains(@class, 'Order_Buttons')]//button[text()='Заказать']"
-        )
-        WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable(order_button)
-        ).click()
+        self.click(self.ORDER_BUTTON)
 
+    @allure.step("Подтвердить заказ")
     def confirm_order(self):
-        confirm_button = (
-            By.XPATH,
-            "//div[contains(@class, 'Order_Modal')]//button[text()='Да']"
-        )
-        WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable(confirm_button)
-        ).click()
+        self.click(self.CONFIRM_BUTTON)
 
+    @allure.step("Получить сообщение об оформлении заказа")
     def get_success_message(self):
-        success_message = (
-            By.XPATH,
-            "//div[contains(@class, 'Order_ModalHeader')]"
-        )
-        return WebDriverWait(self.driver, 10).until(
-            EC.visibility_of_element_located(success_message)
-        ).text
+        return self.get_text(self.SUCCESS_MESSAGE)

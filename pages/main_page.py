@@ -1,59 +1,59 @@
+"""Главная страница Яндекс Самоката."""
 
+import allure
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+
+from pages.base_page import BasePage
 
 
-class MainPage:
+class MainPage(BasePage):
     URL = "https://qa-scooter.praktikum-services.ru/"
 
-    def __init__(self, driver):
-        self.driver = driver
+    FAQ_QUESTION = "accordion__heading-{}"
+    FAQ_ANSWER = "accordion__panel-{}"
+    ORDER_TOP_BUTTON = (By.XPATH, "(//button[normalize-space()='Заказать'])[1]")
+    ORDER_BOTTOM_BUTTON = (By.XPATH, "(//button[normalize-space()='Заказать'])[last()]")
+    SCOOTER_LOGO = (By.XPATH, "//a[contains(@class, 'Header_LogoScooter')]")
+    YANDEX_LOGO = (By.XPATH, "//a[contains(@class, 'Header_LogoYandex')]")
 
+    @allure.step("Открыть главную страницу Самоката")
     def open(self):
-        self.driver.get(self.URL)
+        self.open_url(self.URL)
 
+    @allure.step("Открыть вопрос FAQ с индексом {index}")
     def click_question(self, index):
-        locator = (By.ID, f"accordion__heading-{index}")
-        question = self.driver.find_element(*locator)
-        question.location_once_scrolled_into_view
+        locator = (By.ID, self.FAQ_QUESTION.format(index))
+        self.scroll_and_click(locator)
 
-        WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable(locator)
-        ).click()
-
+    @allure.step("Прочитать ответ FAQ с индексом {index}")
     def get_answer_text(self, index):
-        locator = (By.ID, f"accordion__panel-{index}")
+        locator = (By.ID, self.FAQ_ANSWER.format(index))
+        return self.get_text(locator)
 
-        answer = WebDriverWait(self.driver, 10).until(
-            EC.visibility_of_element_located(locator)
-        )
-        return answer.text
-
+    @allure.step("Нажать кнопку Заказать: {position}")
     def click_order_button(self, position):
-        buttons = self.driver.find_elements(
-            By.XPATH, "//button[normalize-space()='Заказать']"
-        )
-
         if position == "top":
-            button = buttons[0]
+            locator = self.ORDER_TOP_BUTTON
+        elif position == "bottom":
+            locator = self.ORDER_BOTTOM_BUTTON
         else:
-            button = buttons[-1]
+            raise ValueError("position должен быть 'top' или 'bottom'")
+        self.scroll_and_click(locator)
 
-        button.location_once_scrolled_into_view
-        WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable(button)
-        ).click()
-
-
+    @allure.step("Нажать на логотип Самоката")
     def click_scooter_logo(self):
-        logo = (By.XPATH, "//a[contains(@class, 'Header_LogoScooter')]")
-        WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable(logo)
-        ).click()
+        self.click(self.SCOOTER_LOGO)
 
+    @allure.step("Убедиться, что открылась главная страница Самоката")
+    def is_home_page_opened(self):
+        return self.wait_for_url(self.URL)
+
+    @allure.step("Нажать на логотип Яндекса и перейти в новую вкладку")
     def click_yandex_logo(self):
-        logo = (By.XPATH, "//a[contains(@class, 'Header_LogoYandex')]")
-        WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable(logo)
-        ).click()
+        previous_handles = self.get_window_handles()
+        self.click(self.YANDEX_LOGO)
+        self.switch_to_new_tab(previous_handles)
+
+    @allure.step("Убедиться, что открылась страница Дзена")
+    def is_dzen_opened(self):
+        return self.wait_for_url_contains("dzen.ru")

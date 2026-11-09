@@ -1,9 +1,16 @@
+# Python
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Virtual environments
 .venv/
 venv/
+
+# Local driver and logs (do not commit)
 geckodriver.exe
 geckodriver.log
+
+# Editors
 .idea/
 .vscode/

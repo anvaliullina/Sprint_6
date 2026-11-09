@@ -1,5 +1,6 @@
+"""Общая фикстура запуска Firefox."""
 
-from pathlib import Path
+import os
 
 import pytest
 from selenium import webdriver
@@ -8,18 +9,13 @@ from selenium.webdriver.firefox.service import Service
 
 @pytest.fixture
 def driver():
-    project_dir = Path(__file__).resolve().parent.parent
-    driver_path = project_dir / "geckodriver.exe"
-
-    service = Service(
-        executable_path=str(driver_path),
-        log_output=str(project_dir / "geckodriver.log"),
-        service_args=["--log", "debug"]
-    )
-
+    # По умолчанию Selenium сам ищет драйвер в окружении.
+    # GECKODRIVER_PATH нужен лишь там, где автоматическая загрузка недоступна.
+    driver_path = os.getenv("GECKODRIVER_PATH")
+    service = Service(executable_path=driver_path) if driver_path else Service()
     browser = webdriver.Firefox(service=service)
-    browser.maximize_window()
-
-    yield browser
-
-    browser.quit()
+    try:
+        browser.maximize_window()
+        yield browser
+    finally:
+        browser.quit()
